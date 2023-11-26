@@ -12,7 +12,7 @@ const Container = styled.div`
   width: 100%;
   height: calc(100% - 0px);
   display: flex;
-  overflow-x: hidden; // Disable manual scrolling
+  overflow-x: hidden; // Keep this to hide the scrollbar
   scroll-behavior: smooth;
 `;
 
@@ -22,7 +22,8 @@ const Card = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: ${(props) => props.bgColor};
+  background-color: ${(props) =>
+    props.$bgColor}; // Updated to use transient prop
 `;
 
 const ButtonContainer = styled.div`
@@ -85,21 +86,54 @@ const LikertButton = styled.button`
   padding: 5px 10px;
   margin: 5px;
   border-radius: 5px;
-  background-color: #f0f0f0;
+  background-color: ${(props) =>
+    props.$isSelected ? "#4CAF50" : "#f0f0f0"}; // Updated to use transient prop
   border: 1px solid #ccc;
   cursor: pointer;
   &:hover {
-    background-color: #e0e0e0;
+    background-color: ${(props) =>
+      props.$isSelected
+        ? "#388E3C"
+        : "#e0e0e0"}; // Updated to use transient prop
   }
 `;
 
+const Modal = styled.div`
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
+  color: #333;
+  text-align: center;
+  z-index: 2; // Higher than the overlay
+`;
+
+const ScoreDisplay = styled.div`
+  margin-top: 20px;
+  font-size: 1.2rem;
+  color: #333; // Adjusted for readability on the white background
+`;
+
+const Overlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5); // Semi-transparent black
+  z-index: 1; // Ensure it's behind the modal but above other content
+`;
 // Card data
 const cardData = [
   { id: 1, bgColor: "#000", content: "openness" },
-  { id: 2, bgColor: "blue", content: "conscientiousness" },
+  { id: 2, bgColor: "pink", content: "conscientiousness" },
   { id: 3, bgColor: "green", content: "extraversion" },
   { id: 4, bgColor: "#000", content: "agreeableness" },
-  { id: 5, bgColor: "orange", content: "neuroticism" },
+  { id: 5, bgColor: "teal", content: "neuroticism" },
 ];
 
 const likertOptions = [
@@ -115,15 +149,36 @@ const FullScreenCards = () => {
   const [currentCard, setCurrentCard] = useState(1);
   const [questionsData, setQuestionsData] = useState({});
   const containerRef = useRef(null);
-  const [answers, setAnswers] = useState({});
+  const [selectedAnswers, setSelectedAnswers] = useState({});
+  const [showScores, setShowScores] = useState(false); // State to control the display of scores
+  const [categoryScores, setCategoryScores] = useState({}); // State to hold scores for each category
+  const [isCurrentCardComplete, setIsCurrentCardComplete] = useState(false);
+  const [unansweredQuestions, setUnansweredQuestions] = useState([]);
+
   const handleAnswer = (category, question, score) => {
-    setAnswers((prevAnswers) => ({
-      ...prevAnswers,
-      [category]: {
-        ...prevAnswers[category],
-        [question]: score,
-      },
-    }));
+    const answerKey = `${category}-${question}`;
+    console.log(`Updating answer for ${answerKey} to score: ${score}`);
+
+    setSelectedAnswers((prevSelected) => {
+      const newSelected = {
+        ...prevSelected,
+        [answerKey]: score,
+      };
+
+      // Check if all questions in the current card are answered
+      const allAnswered = questionsData[
+        cardData[currentCard - 1].content
+      ].every(
+        (q) =>
+          newSelected[`${cardData[currentCard - 1].content}-${q}`] !== undefined
+      );
+
+      if (allAnswered) {
+        setUnansweredQuestions([]); // Clear any unanswered questions if all are answered
+      }
+
+      return newSelected;
+    });
   };
 
   useEffect(() => {
@@ -151,28 +206,74 @@ const FullScreenCards = () => {
   }, []);
 
   const calculateScore = () => {
-    console.log("Calculating score...");
-    // Add your score calculation logic here
+    if (!checkAllAnswered()) {
+      alert("Please answer all questions before calculating the score.");
+      return;
+    }
+
+    const scores = {};
+    // Compute scores for each category
+    Object.keys(selectedAnswers).forEach((key) => {
+      const [category, question] = key.split("-");
+      scores[category] = (scores[category] || 0) + selectedAnswers[key];
+    });
+
+    setCategoryScores(scores); // Update state with calculated scores
+    setShowScores(true); // Set to display scores
+    console.log("Calculated Scores:", scores);
+  };
+
+  const checkAllAnswered = () => {
+    const currentQuestions = questionsData[cardData[currentCard - 1].content];
+    const unanswered = currentQuestions.filter(
+      (q) =>
+        selectedAnswers[`${cardData[currentCard - 1].content}-${q}`] ===
+        undefined
+    );
+    setUnansweredQuestions(unanswered);
+    return unanswered.length === 0;
   };
 
   const scroll = (direction) => {
     let newCard = direction === "right" ? currentCard + 1 : currentCard - 1;
-    newCard = Math.max(1, Math.min(newCard, cardData.length));
-
-    // Calculate the scroll position
-    const scrollPosition = (newCard - 1) * window.innerWidth;
-    containerRef.current.scrollTo({ left: scrollPosition, behavior: "smooth" });
-    setCurrentCard(newCard);
+    if (direction === "right" && !checkAllAnswered()) {
+      alert("Please answer all questions before proceeding.");
+      return;
+    }
+    if (newCard >= 1 && newCard <= cardData.length) {
+      setCurrentCard(newCard);
+      const scrollPosition = (newCard - 1) * window.innerWidth;
+      containerRef.current.scrollTo({
+        left: scrollPosition,
+        behavior: "smooth",
+      });
+    }
   };
-  const LikertScaleQuestion = ({ question, onAnswer }) => {
+
+  const LikertScaleQuestion = ({
+    category,
+    question,
+    onAnswer,
+    selectedAnswers,
+  }) => {
+    const answerKey = `${category}-${question}`;
+    const isSelected = selectedAnswers[answerKey];
+
     return (
-      <div>
+      <div
+        style={{
+          backgroundColor: unansweredQuestions.includes(question)
+            ? "#E0E0E0" // Changed to a lighter grey for a subtler warning
+            : "transparent",
+        }}
+      >
         <Question>{question}</Question>
         <div>
           {likertOptions.map((option) => (
             <LikertButton
-              key={option.score}
-              onClick={() => onAnswer(option.score)}
+              key={`${question}-${option.score}`}
+              $isSelected={option.score === isSelected}
+              onClick={() => onAnswer(category, question, option.score)}
             >
               {option.text}
             </LikertButton>
@@ -185,30 +286,52 @@ const FullScreenCards = () => {
   return (
     <Layout>
       <Container ref={containerRef}>
-        {cardData.map((card) => (
-          <Card key={card.id} bgColor={card.bgColor}>
+        {cardData.map((card, index) => (
+          <Card key={card.id} $bgColor={card.bgColor}>
             <Title>{cardData[currentCard - 1].content}</Title>
+
             <QuestionContainer>
               {questionsData[card.content] &&
                 questionsData[card.content].map((question, index) => (
                   <LikertScaleQuestion
                     key={index}
+                    category={card.content}
                     question={question}
-                    onAnswer={(score) =>
-                      handleAnswer(card.content, question, score)
-                    }
+                    onAnswer={handleAnswer}
+                    selectedAnswers={selectedAnswers} // Pass selectedAnswers
                   />
                 ))}
             </QuestionContainer>
           </Card>
         ))}
       </Container>
+      {showScores && (
+        <>
+          <Overlay />
+          <Modal>
+            <h2>Your Scores</h2>
+            {Object.entries(categoryScores).map(([category, score]) => (
+              <ScoreDisplay key={category}>
+                {category}: {score.toFixed(2)}
+              </ScoreDisplay>
+            ))}
+            <Button onClick={() => setShowScores(false)}>Close</Button>
+          </Modal>
+        </>
+      )}
       <ButtonContainer>
         {currentCard > 1 && (
           <Button onClick={() => scroll("left")}>Back</Button>
         )}
         {currentCard < cardData.length && (
-          <Button onClick={() => scroll("right")}>Next</Button>
+          <Button
+            onClick={() => scroll("right")}
+            disabled={
+              currentCard !== cardData.length && unansweredQuestions.length > 0
+            }
+          >
+            Next
+          </Button>
         )}
         {currentCard === cardData.length && (
           <Button onClick={calculateScore}>Calculate Score</Button>
