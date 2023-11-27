@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { AiOutlineExclamationCircle } from "react-icons/ai";
 import styled from "styled-components";
 
 // Styled components
@@ -60,8 +61,31 @@ const Button = styled.button`
 
 const Question = styled.p`
   margin: 10px 0;
-  color: #fff;
+  color: #fff; // Keeping the original text color
   font-size: 1rem;
+  /* text-decoration: ${(props) =>
+    props.$unanswered ? "underline" : "none"}; */
+  text-decoration-color: ${(props) =>
+    props.$unanswered ? "#FF5733" : "transparent"};
+  animation: ${(props) => (props.$unanswered ? "pulse 1s infinite" : "none")};
+
+  @keyframes pulse {
+    0% {
+      text-decoration-color: #ff5733;
+    }
+    50% {
+      text-decoration-color: transparent;
+    }
+    100% {
+      text-decoration-color: #ff5733;
+    }
+  }
+`;
+
+const QuestionWithIcon = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 5px; // Space between icon and text
 `;
 
 const Title = styled.h2`
@@ -129,11 +153,11 @@ const Overlay = styled.div`
 `;
 // Card data
 const cardData = [
-  { id: 1, bgColor: "#000", content: "openness" },
-  { id: 2, bgColor: "pink", content: "conscientiousness" },
-  { id: 3, bgColor: "green", content: "extraversion" },
-  { id: 4, bgColor: "#000", content: "agreeableness" },
-  { id: 5, bgColor: "teal", content: "neuroticism" },
+  { id: 1, bgColor: "#008080", content: "openness" },
+  { id: 2, bgColor: "#00008B", content: "conscientiousness" },
+  { id: 3, bgColor: "#FFA500", content: "extraversion" },
+  { id: 4, bgColor: "#77DD77", content: "agreeableness" },
+  { id: 5, bgColor: "#808080", content: "neuroticism" },
 ];
 
 const likertOptions = [
@@ -258,16 +282,14 @@ const FullScreenCards = () => {
   }) => {
     const answerKey = `${category}-${question}`;
     const isSelected = selectedAnswers[answerKey];
+    const isUnanswered = unansweredQuestions.includes(question);
 
     return (
-      <div
-        style={{
-          backgroundColor: unansweredQuestions.includes(question)
-            ? "#E0E0E0" // Changed to a lighter grey for a subtler warning
-            : "transparent",
-        }}
-      >
-        <Question>{question}</Question>
+      <div>
+        <QuestionWithIcon>
+          {isUnanswered && <AiOutlineExclamationCircle color="#FF5733" />}
+          <Question $unanswered={isUnanswered}>{question}</Question>
+        </QuestionWithIcon>
         <div>
           {likertOptions.map((option) => (
             <LikertButton
@@ -289,7 +311,6 @@ const FullScreenCards = () => {
         {cardData.map((card, index) => (
           <Card key={card.id} $bgColor={card.bgColor}>
             <Title>{cardData[currentCard - 1].content}</Title>
-
             <QuestionContainer>
               {questionsData[card.content] &&
                 questionsData[card.content].map((question, index) => (
