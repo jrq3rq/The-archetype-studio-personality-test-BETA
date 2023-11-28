@@ -36,16 +36,16 @@ const ButtonContainer = styled.div`
   gap: 10px;
 `;
 
-const SliderBar = styled.div`
-  position: fixed;
-  bottom: 0;
-  width: 100%;
-  height: 50px;
-  background-color: #eee;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-`;
+// const SliderBar = styled.div`
+//   position: fixed;
+//   bottom: 0;
+//   width: 100%;
+//   height: 50px;
+//   background-color: #eee;
+//   display: flex;
+//   justify-content: center;
+//   align-items: center;
+// `;
 
 const Button = styled.button`
   padding: 10px 20px;
@@ -61,8 +61,9 @@ const Button = styled.button`
 
 const Question = styled.p`
   margin: 10px 0;
-  color: #fff; // Keeping the original text color
+  color: #f5f5f5; // Keeping the original text color
   font-size: 1rem;
+  padding-left: 10px;
   /* text-decoration: ${(props) =>
     props.$unanswered ? "underline" : "none"}; */
   text-decoration-color: ${(props) =>
@@ -96,14 +97,6 @@ const Title = styled.h2`
   color: #fff;
   font-size: 1.5rem;
   margin: 0;
-`;
-
-const QuestionContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
 `;
 
 const LikertButton = styled.button`
@@ -151,6 +144,74 @@ const Overlay = styled.div`
   background-color: rgba(0, 0, 0, 0.5); // Semi-transparent black
   z-index: 1; // Ensure it's behind the modal but above other content
 `;
+
+const AlertModal = styled.div`
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
+  text-align: center;
+  z-index: 1000; // Ensure it's above other content
+`;
+
+const AlertOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 999; // Just below the modal
+`;
+
+const RadioButtonLabel = styled.label`
+  display: flex;
+  align-items: center;
+  background-color: #f0f0f0;
+  padding: 5px 10px;
+  border-radius: 5px;
+  margin: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+
+  &:hover {
+    background-color: #e0e0e0;
+  }
+`;
+
+const RadioButton = styled.input`
+  margin-right: 10px;
+  cursor: pointer;
+`;
+
+const QuestionContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%; // Full width
+  height: auto; // Auto height on larger screens
+  overflow-y: hidden; // No scroll initially
+  padding: 20px 0; // Add padding to avoid content touching edges
+`;
+
+const RadioButtonGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start; // Align items to the start
+  width: 100%; // Take full width of the container
+  margin: 10px 0;
+
+  @media (min-width: 768px) {
+    flex-direction: row;
+    justify-content: center;
+  }
+`;
+
 // Card data
 const cardData = [
   { id: 1, bgColor: "#008080", content: "openness" },
@@ -176,20 +237,25 @@ const FullScreenCards = () => {
   const [selectedAnswers, setSelectedAnswers] = useState({});
   const [showScores, setShowScores] = useState(false); // State to control the display of scores
   const [categoryScores, setCategoryScores] = useState({}); // State to hold scores for each category
-  const [isCurrentCardComplete, setIsCurrentCardComplete] = useState(false);
+  // const [isCurrentCardComplete, setIsCurrentCardComplete] = useState(false);
   const [unansweredQuestions, setUnansweredQuestions] = useState([]);
+  const [showAlert, setShowAlert] = useState(false);
+  const [isModalAlertEnabled, setIsModalAlertEnabled] = useState(false);
 
+  const enableModalAfterFirstQuestion = () => {
+    if (selectedAnswers["openness-FirstQuestionKey"] !== undefined) {
+      setIsModalAlertEnabled(true);
+    }
+  };
   const handleAnswer = (category, question, score) => {
     const answerKey = `${category}-${question}`;
-    console.log(`Updating answer for ${answerKey} to score: ${score}`);
-
     setSelectedAnswers((prevSelected) => {
       const newSelected = {
         ...prevSelected,
         [answerKey]: score,
       };
 
-      // Check if all questions in the current card are answered
+      // Use newSelected here
       const allAnswered = questionsData[
         cardData[currentCard - 1].content
       ].every(
@@ -198,9 +264,10 @@ const FullScreenCards = () => {
       );
 
       if (allAnswered) {
-        setUnansweredQuestions([]); // Clear any unanswered questions if all are answered
+        setUnansweredQuestions([]);
       }
 
+      enableModalAfterFirstQuestion(); // Call this function here
       return newSelected;
     });
   };
@@ -261,14 +328,16 @@ const FullScreenCards = () => {
   const scroll = (direction) => {
     let newCard = direction === "right" ? currentCard + 1 : currentCard - 1;
     if (direction === "right" && !checkAllAnswered()) {
-      alert("Please answer all questions before proceeding.");
-      return;
+      if (isModalAlertEnabled) {
+        setShowAlert(true); // Show the modal alert only if it is enabled.
+      }
+      return; // Prevent moving to the next card if all questions are not answered.
     }
+
     if (newCard >= 1 && newCard <= cardData.length) {
       setCurrentCard(newCard);
-      const scrollPosition = (newCard - 1) * window.innerWidth;
       containerRef.current.scrollTo({
-        left: scrollPosition,
+        left: (newCard - 1) * window.innerWidth,
         behavior: "smooth",
       });
     }
@@ -288,25 +357,38 @@ const FullScreenCards = () => {
       <div>
         <QuestionWithIcon>
           {isUnanswered && <AiOutlineExclamationCircle color="#FF5733" />}
+
           <Question $unanswered={isUnanswered}>{question}</Question>
         </QuestionWithIcon>
-        <div>
-          {likertOptions.map((option) => (
-            <LikertButton
-              key={`${question}-${option.score}`}
-              $isSelected={option.score === isSelected}
-              onClick={() => onAnswer(category, question, option.score)}
-            >
+        <RadioButtonGroup>
+          {likertOptions.map((option, index) => (
+            <RadioButtonLabel key={index}>
+              <RadioButton
+                type="radio"
+                name={answerKey}
+                checked={option.score === isSelected}
+                onChange={() => onAnswer(category, question, option.score)}
+              />
               {option.text}
-            </LikertButton>
+            </RadioButtonLabel>
           ))}
-        </div>
+        </RadioButtonGroup>
       </div>
     );
   };
 
   return (
     <Layout>
+      {showAlert && isModalAlertEnabled && (
+        <>
+          <AlertOverlay onClick={() => setShowAlert(false)} />
+          <AlertModal>
+            <p>Please answer all questions before proceeding.</p>
+            <Button onClick={() => setShowAlert(false)}>Close</Button>
+          </AlertModal>
+        </>
+      )}
+
       <Container ref={containerRef}>
         {cardData.map((card, index) => (
           <Card key={card.id} $bgColor={card.bgColor}>
