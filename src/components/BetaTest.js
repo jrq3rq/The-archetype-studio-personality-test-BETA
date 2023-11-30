@@ -5,7 +5,7 @@ import styled from "styled-components";
 // Styled components
 const Layout = styled.div`
   width: 100vw;
-  height: 100vh;
+  height: 80vh;
   position: relative;
 `;
 
@@ -29,7 +29,7 @@ const Card = styled.div`
 
 const ButtonContainer = styled.div`
   position: fixed;
-  bottom: 60px;
+  bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -55,6 +55,7 @@ const Button = styled.button`
   color: #333;
   cursor: pointer;
   &:hover {
+    color: #333;
     background-color: #f0f0f0;
   }
 `;
@@ -94,7 +95,7 @@ const Title = styled.h2`
   top: 20px;
   width: 100%;
   text-align: center;
-  color: #fff;
+  color: #f0f0f0;
   font-size: 1.5rem;
   margin: 0;
 `;
@@ -212,13 +213,25 @@ const RadioButtonGroup = styled.div`
   }
 `;
 
+const FullHeightContainer = styled.div`
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  overflow-y: auto;
+  box-sizing: border-box;
+  background-color: ${(props) =>
+    props.$bgColor}; // Use bgColor prop for background
+`;
+
 // Card data
 const cardData = [
   { id: 1, bgColor: "#008080", content: "openness" },
-  { id: 2, bgColor: "#00008B", content: "conscientiousness" },
-  { id: 3, bgColor: "#FFA500", content: "extraversion" },
-  { id: 4, bgColor: "#77DD77", content: "agreeableness" },
-  { id: 5, bgColor: "#808080", content: "neuroticism" },
+  { id: 2, bgColor: "#008080", content: "conscientiousness" },
+  { id: 3, bgColor: "#008080", content: "extraversion" },
+  { id: 4, bgColor: "#008080", content: "agreeableness" },
+  { id: 5, bgColor: "#008080", content: "neuroticism" },
 ];
 
 const likertOptions = [
@@ -378,50 +391,53 @@ const FullScreenCards = () => {
   };
 
   return (
-    <Layout>
-      {showAlert && isModalAlertEnabled && (
-        <>
-          <AlertOverlay onClick={() => setShowAlert(false)} />
-          <AlertModal>
-            <p>Please answer all questions before proceeding.</p>
-            <Button onClick={() => setShowAlert(false)}>Close</Button>
-          </AlertModal>
-        </>
-      )}
+    <FullHeightContainer $bgColor={cardData[currentCard - 1].bgColor}>
+      <Title>{cardData[currentCard - 1].content}</Title>
+      <Layout>
+        {showAlert && isModalAlertEnabled && (
+          <>
+            <AlertOverlay onClick={() => setShowAlert(false)} />
+            <AlertModal>
+              <p>Please answer all questions before proceeding.</p>
+              <Button onClick={() => setShowAlert(false)}>Close</Button>
+            </AlertModal>
+          </>
+        )}
 
-      <Container ref={containerRef}>
-        {cardData.map((card, index) => (
-          <Card key={card.id} $bgColor={card.bgColor}>
-            <Title>{cardData[currentCard - 1].content}</Title>
-            <QuestionContainer>
-              {questionsData[card.content] &&
-                questionsData[card.content].map((question, index) => (
-                  <LikertScaleQuestion
-                    key={index}
-                    category={card.content}
-                    question={question}
-                    onAnswer={handleAnswer}
-                    selectedAnswers={selectedAnswers} // Pass selectedAnswers
-                  />
-                ))}
-            </QuestionContainer>
-          </Card>
-        ))}
-      </Container>
-      {showScores && (
-        <>
-          <Overlay />
-          <Modal>
-            <h2>Your Scores</h2>
-            {Object.entries(categoryScores).map(([category, score]) => (
-              <ScoreDisplay key={category}>
-                {category}: {score.toFixed(2)}
-              </ScoreDisplay>
-            ))}
-            <Button onClick={() => setShowScores(false)}>Close</Button>
-          </Modal>
-        </>
-      )}
+        <Container ref={containerRef}>
+          {cardData.map((card, index) => (
+            <Card key={card.id} $bgColor={card.bgColor}>
+              <QuestionContainer>
+                {questionsData[card.content] &&
+                  questionsData[card.content].map((question, index) => (
+                    <LikertScaleQuestion
+                      key={index}
+                      category={card.content}
+                      question={question}
+                      onAnswer={handleAnswer}
+                      selectedAnswers={selectedAnswers} // Pass selectedAnswers
+                    />
+                  ))}
+              </QuestionContainer>
+            </Card>
+          ))}
+        </Container>
+        {showScores && (
+          <>
+            <Overlay />
+            <Modal>
+              <h2>Your Scores</h2>
+              {Object.entries(categoryScores).map(([category, score]) => (
+                <ScoreDisplay key={category}>
+                  {category}: {score.toFixed(2)}
+                </ScoreDisplay>
+              ))}
+              <Button onClick={() => setShowScores(false)}>Close</Button>
+            </Modal>
+          </>
+        )}
+        {/* <SliderBar>Current Card: {cardData[currentCard - 1].content}</SliderBar> */}
+      </Layout>
       <ButtonContainer>
         {currentCard > 1 && (
           <Button onClick={() => scroll("left")}>Back</Button>
@@ -440,8 +456,7 @@ const FullScreenCards = () => {
           <Button onClick={calculateScore}>Calculate Score</Button>
         )}
       </ButtonContainer>
-      {/* <SliderBar>Current Card: {cardData[currentCard - 1].content}</SliderBar> */}
-    </Layout>
+    </FullHeightContainer>
   );
 };
 
