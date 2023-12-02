@@ -3,11 +3,6 @@ import { AiOutlineExclamationCircle } from "react-icons/ai";
 import styled from "styled-components";
 
 // Styled components
-const Layout = styled.div`
-  width: 100vw;
-  height: 80vh;
-  position: relative;
-`;
 
 const Container = styled.div`
   width: 100%;
@@ -18,22 +13,20 @@ const Container = styled.div`
 `;
 
 const Card = styled.div`
-  flex: 0 0 100vw; // Ensure each card takes up the full viewport width
-  height: 100%;
+  flex: 0 0 auto; // Allow each card to grow as needed
+  width: 100vw;
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: ${(props) =>
-    props.$bgColor}; // Updated to use transient prop
+  background-color: ${(props) => props.$bgColor};
 `;
 
 const ButtonContainer = styled.div`
-  position: fixed;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
   display: flex;
   gap: 10px;
+  padding: 20px 0; // Add padding for spacing
+  width: 100%;
+  justify-content: center;
 `;
 
 // const SliderBar = styled.div`
@@ -61,25 +54,38 @@ const Button = styled.button`
 `;
 
 const Question = styled.p`
-  margin: 10px 0;
+  // Basic styling
+  margin: 10px;
   color: #f5f5f5; // Keeping the original text color
   font-size: 1rem;
   padding-left: 10px;
-  /* text-decoration: ${(props) =>
-    props.$unanswered ? "underline" : "none"}; */
+  word-wrap: break-word; // Ensures text wraps within the container
+
+  // Max-width for mobile-first approach
+  max-width: 550px; // Adjusted for better readability on smaller screens
+
+  // Style for unanswered questions
   text-decoration-color: ${(props) =>
     props.$unanswered ? "#FF5733" : "transparent"};
   animation: ${(props) => (props.$unanswered ? "pulse 1s infinite" : "none")};
 
+  // Responsive design adjustments
+  @media (max-width: 769px) {
+    max-width: 450px; // Adjust for medium-sized devices
+  }
+
+  @media (min-width: 770px) {
+    max-width: 960px; // Adjust for larger devices
+  }
+
+  // Keyframes for pulse animation
   @keyframes pulse {
-    0% {
+    0%,
+    100% {
       text-decoration-color: #ff5733;
     }
     50% {
       text-decoration-color: transparent;
-    }
-    100% {
-      text-decoration-color: #ff5733;
     }
   }
 `;
@@ -91,15 +97,12 @@ const QuestionWithIcon = styled.div`
 `;
 
 const Title = styled.h2`
-  position: absolute;
-  top: 20px;
-  width: 100%;
   text-align: center;
   color: #f0f0f0;
   font-size: 1.5rem;
-  margin: 0;
+  margin: 20px 0; // Add margin for spacing
+  width: 100%;
 `;
-
 const LikertButton = styled.button`
   padding: 5px 10px;
   margin: 5px;
@@ -188,16 +191,32 @@ const RadioButton = styled.input`
   margin-right: 10px;
   cursor: pointer;
 `;
+const Layout = styled.div`
+  width: 100vw;
+  flex-grow: 1; // Allow this container to grow as needed
+  position: relative;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+`;
 
 const QuestionContainer = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 100%; // Full width
-  height: auto; // Auto height on larger screens
-  overflow-y: hidden; // No scroll initially
-  padding: 20px 0; // Add padding to avoid content touching edges
+  width: 100%;
+  overflow-y: auto; // Allow scrolling within the container
+  padding: 20px 0; // Add padding for spacing
+  margin-top: 40px;
+`;
+
+const StyledQuestion = styled(Question)`
+  word-wrap: break-word; // Ensures long words are broken and wrapped to the next line
+  font-size: 1rem; // Default font size
+
+  @media (max-width: 768px) {
+    font-size: 0.9rem; // Slightly smaller font size on smaller screens
+  }
 `;
 
 const RadioButtonGroup = styled.div`
@@ -206,6 +225,7 @@ const RadioButtonGroup = styled.div`
   align-items: flex-start; // Align items to the start
   width: 100%; // Take full width of the container
   margin: 10px 0;
+  margin: 10px 10px;
 
   @media (min-width: 768px) {
     flex-direction: row;
@@ -214,15 +234,14 @@ const RadioButtonGroup = styled.div`
 `;
 
 const FullHeightContainer = styled.div`
-  height: 100vh;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: space-between; // Distribute space between elements
   align-items: center;
-  overflow-y: auto;
+  min-height: 100vh; // Use min-height to accommodate content
+  overflow-y: auto; // Allow vertical scrolling
   box-sizing: border-box;
-  background-color: ${(props) =>
-    props.$bgColor}; // Use bgColor prop for background
+  background-color: ${(props) => props.$bgColor};
 `;
 
 // Card data
@@ -310,10 +329,10 @@ const FullScreenCards = () => {
   }, []);
 
   const calculateScore = () => {
-    if (!checkAllAnswered()) {
-      alert("Please answer all questions before calculating the score.");
-      return;
-    }
+    // if (!checkAllAnswered()) {
+    //   alert("Please answer all questions before calculating the score.");
+    //   return;
+    // }
 
     const scores = {};
     // Compute scores for each category
@@ -340,13 +359,14 @@ const FullScreenCards = () => {
 
   const scroll = (direction) => {
     let newCard = direction === "right" ? currentCard + 1 : currentCard - 1;
-    if (direction === "right" && !checkAllAnswered()) {
-      if (isModalAlertEnabled) {
-        setShowAlert(true); // Show the modal alert only if it is enabled.
-      }
-      return; // Prevent moving to the next card if all questions are not answered.
+
+    // Check if all questions are answered before allowing navigation
+    if (!checkAllAnswered()) {
+      // If questions are not answered, simply return without navigating
+      return;
     }
 
+    // Check if the new card number is within the valid range
     if (newCard >= 1 && newCard <= cardData.length) {
       setCurrentCard(newCard);
       containerRef.current.scrollTo({
@@ -391,72 +411,75 @@ const FullScreenCards = () => {
   };
 
   return (
-    <FullHeightContainer $bgColor={cardData[currentCard - 1].bgColor}>
-      <Title>{cardData[currentCard - 1].content}</Title>
-      <Layout>
-        {showAlert && isModalAlertEnabled && (
-          <>
-            <AlertOverlay onClick={() => setShowAlert(false)} />
-            <AlertModal>
-              <p>Please answer all questions before proceeding.</p>
-              <Button onClick={() => setShowAlert(false)}>Close</Button>
-            </AlertModal>
-          </>
-        )}
+    <>
+      <FullHeightContainer $bgColor={cardData[currentCard - 1].bgColor}>
+        <Title>{cardData[currentCard - 1].content}</Title>
+        <Layout>
+          {showAlert && isModalAlertEnabled && (
+            <>
+              <AlertOverlay onClick={() => setShowAlert(false)} />
+              <AlertModal>
+                <p>Please answer all questions before proceeding.</p>
+                <Button onClick={() => setShowAlert(false)}>Close</Button>
+              </AlertModal>
+            </>
+          )}
 
-        <Container ref={containerRef}>
-          {cardData.map((card, index) => (
-            <Card key={card.id} $bgColor={card.bgColor}>
-              <QuestionContainer>
-                {questionsData[card.content] &&
-                  questionsData[card.content].map((question, index) => (
-                    <LikertScaleQuestion
-                      key={index}
-                      category={card.content}
-                      question={question}
-                      onAnswer={handleAnswer}
-                      selectedAnswers={selectedAnswers} // Pass selectedAnswers
-                    />
-                  ))}
-              </QuestionContainer>
-            </Card>
-          ))}
-        </Container>
-        {showScores && (
-          <>
-            <Overlay />
-            <Modal>
-              <h2>Your Scores</h2>
-              {Object.entries(categoryScores).map(([category, score]) => (
-                <ScoreDisplay key={category}>
-                  {category}: {score.toFixed(2)}
-                </ScoreDisplay>
-              ))}
-              <Button onClick={() => setShowScores(false)}>Close</Button>
-            </Modal>
-          </>
-        )}
-        {/* <SliderBar>Current Card: {cardData[currentCard - 1].content}</SliderBar> */}
-      </Layout>
-      <ButtonContainer>
-        {currentCard > 1 && (
-          <Button onClick={() => scroll("left")}>Back</Button>
-        )}
-        {currentCard < cardData.length && (
-          <Button
-            onClick={() => scroll("right")}
-            disabled={
-              currentCard !== cardData.length && unansweredQuestions.length > 0
-            }
-          >
-            Next
-          </Button>
-        )}
-        {currentCard === cardData.length && (
-          <Button onClick={calculateScore}>Calculate Score</Button>
-        )}
-      </ButtonContainer>
-    </FullHeightContainer>
+          <Container ref={containerRef}>
+            {cardData.map((card, index) => (
+              <Card key={card.id} $bgColor={card.bgColor}>
+                <QuestionContainer>
+                  {questionsData[card.content] &&
+                    questionsData[card.content].map((question, index) => (
+                      <LikertScaleQuestion
+                        key={index}
+                        category={card.content}
+                        question={question}
+                        onAnswer={handleAnswer}
+                        selectedAnswers={selectedAnswers} // Pass selectedAnswers
+                      />
+                    ))}
+                </QuestionContainer>
+              </Card>
+            ))}
+          </Container>
+          {showScores && (
+            <>
+              <Overlay />
+              <Modal>
+                <h2>Your Scores</h2>
+                {Object.entries(categoryScores).map(([category, score]) => (
+                  <ScoreDisplay key={category}>
+                    {category}: {score.toFixed(2)}
+                  </ScoreDisplay>
+                ))}
+                <Button onClick={() => setShowScores(false)}>Close</Button>
+              </Modal>
+            </>
+          )}
+          {/* <SliderBar>Current Card: {cardData[currentCard - 1].content}</SliderBar> */}
+        </Layout>
+        <ButtonContainer>
+          {currentCard > 1 && (
+            <Button onClick={() => scroll("left")}>Back</Button>
+          )}
+          {currentCard < cardData.length && (
+            <Button
+              onClick={() => scroll("right")}
+              disabled={
+                currentCard !== cardData.length &&
+                unansweredQuestions.length > 0
+              }
+            >
+              Next
+            </Button>
+          )}
+          {currentCard === cardData.length && (
+            <Button onClick={calculateScore}>Calculate Score</Button>
+          )}
+        </ButtonContainer>
+      </FullHeightContainer>
+    </>
   );
 };
 
